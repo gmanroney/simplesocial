@@ -7,8 +7,8 @@ import re
 
 # These example values won't work. You must get your own api_id and
 # api_hash from https://my.telegram.org, under API Development.
-api_id = 297114
-api_hash = '45692fe05242e19d33fd512e1893d737'
+api_id = xxx
+api_hash = 'xxx'
 client = TelegramClient('session_name', api_id, api_hash)
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
