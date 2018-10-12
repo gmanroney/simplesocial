@@ -1,1 +1,2 @@
+# stenve file stores environment variables and configuration for shell scripts used by this application
 export homedir=/tmp

@@ -4,25 +4,45 @@ from telethon import TelegramClient, events, sync
 from telethon.tl.functions.messages import GetHistoryRequest
 import pymongo
 import re
+import configparser
 
-# These example values won't work. You must get your own api_id and
-# api_hash from https://my.telegram.org, under API Development.
-api_id = INSERT_api_id
-records_added = 0
-api_hash = 'INSERT_api_hash'
-client = TelegramClient('session_name', api_id, api_hash)
+# Helper function to read from configuration file
+def ConfigSectionMap(section):
+    dict1 = {}
+    options = config.options(section)
+    for option in options:
+        try:
+            dict1[option] = config.get(section, option)
+            if dict1[option] == -1:
+                DebugPrint("skip: %s" % option)
+        except:
+            print("exception on %s!" % option)
+            dict1[option] = None
+    return dict1
+                                                                                                                
+# Read From Config File
+config = configparser.ConfigParser()
+config.read('./readChannel.ini')
+api_id = ConfigSectionMap("telegram")['api_id']
+api_hash = ConfigSectionMap("telegram")['api_hash']
+channel_name = ConfigSectionMap("telegram")['channel_name']
+mongo_db = ConfigSectionMap("mongo")['mongo_db']
+mongo_collection = ConfigSectionMap("mongo")['mongo_collection']
 
+# Define Telegram client connection
+client = TelegramClient('readChannel', api_id, api_hash)
+
+# Define Mongo connection
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["INSERT_socialdb"]
-mycol = mydb["INSERT_channel"]
+mydb = myclient[mongo_db]
+mycol = mydb[mongo_collection]
 
+# Connect to telegram
 client.start()
 client.connect()
 
-channel_username='INSERT_channel' # your channel
-channel_entity=client.get_entity(channel_username)
-
-
+# Connect to channel and get posts
+channel_entity=client.get_entity(channel_name)
 posts = client(GetHistoryRequest(
         peer=channel_entity,
         limit=1000000,
@@ -33,6 +53,10 @@ posts = client(GetHistoryRequest(
         add_offset=0,
         hash=0))
 
+# Initalise counter for records added
+records_added = 0
+
+# Loop through messages and add if not already present
 for message in reversed(posts.messages): 
     cursor = mycol.find({"msg_id": message.id})
     if cursor.count() == 0:
@@ -49,7 +73,6 @@ for message in reversed(posts.messages):
                         "msg_silent": message.silent,
                         "msg_post": message.post,
                         "msg_from_id": message.from_id,
-                        "msg_fwd_from": message.fwd_from,
                         "msg_via_bot_id": message.via_bot_id,
                         "msg_reply_to_msg_id": message.reply_to_msg_id,
                         "msg_reply_markup": message.reply_markup,
@@ -59,5 +82,8 @@ for message in reversed(posts.messages):
                         "msg_grouped_id": message.grouped_id }
             x = mycol.insert_one(mydict)
 
+# Report records added
 print("Records added = ", records_added)
+
+# Close connection
 client.disconnect()
