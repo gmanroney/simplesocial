@@ -63,8 +63,12 @@ user_added = 0
 
 # Loop through messages and add if not already present
 for message in reversed(posts.messages): 
+
+    # Check if user and message is in database or not
     cursor = mycol.find({"msg_id": message.id})
     cursoru = mycolu.find({"id": message.from_id})
+
+    # If no user record add it
     if cursoru.count() == 0:
         user_added = user_added + 1
         user = client.get_entity(PeerUser(message.from_id))
@@ -76,6 +80,7 @@ for message in reversed(posts.messages):
                    "username": user.username }
         x = mycolu.insert_one(myuser)
 
+    # If no message record add it
     if cursor.count() == 0:
         if message.message is not None:
             message_added = message_added + 1
