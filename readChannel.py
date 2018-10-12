@@ -2,6 +2,8 @@
 
 from telethon import TelegramClient, events, sync
 from telethon.tl.functions.messages import GetHistoryRequest
+from telethon.tl.types import PeerUser, PeerChat, PeerChannel
+
 import pymongo
 import re
 import configparser
@@ -28,6 +30,7 @@ api_hash = ConfigSectionMap("telegram")['api_hash']
 channel_name = ConfigSectionMap("telegram")['channel_name']
 mongo_db = ConfigSectionMap("mongo")['mongo_db']
 mongo_collection = ConfigSectionMap("mongo")['mongo_collection']
+mongo_users = ConfigSectionMap("mongo")['mongo_users']
 
 # Define Telegram client connection
 client = TelegramClient('readChannel', api_id, api_hash)
@@ -36,6 +39,7 @@ client = TelegramClient('readChannel', api_id, api_hash)
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
 mydb = myclient[mongo_db]
 mycol = mydb[mongo_collection]
+mycolu = mydb[mongo_users]
 
 # Connect to telegram
 client.start()
@@ -54,18 +58,31 @@ posts = client(GetHistoryRequest(
         hash=0))
 
 # Initalise counter for records added
-records_added = 0
+message_added = 0
+user_added = 0
 
 # Loop through messages and add if not already present
 for message in reversed(posts.messages): 
     cursor = mycol.find({"msg_id": message.id})
+    cursoru = mycolu.find({"id": message.from_id})
+    if cursoru.count() == 0:
+        user_added = user_added + 1
+        user = client.get_entity(PeerUser(message.from_id))
+        print (user)
+        myuser = { "id": user.id,
+                   "access_hash": user.access_hash,
+                   "first_name": user.first_name,
+                   "last_name": user.last_name,
+                   "username": user.username }
+        x = mycolu.insert_one(myuser)
+
     if cursor.count() == 0:
         if message.message is not None:
-            records_added = records_added + 1
+            message_added = message_added + 1
             pattern = re.compile('[^A-Za-z0-9 -]')
             new_msg = pattern.sub('',message.message)
             print (message)
-            mydict = {  "msg_id": message.id,
+            mymessage = {  "msg_id": message.id,
                         "msg_date": message.date,
                         "msg_message": message.message,
                         "msg_out": message.out,
@@ -80,10 +97,11 @@ for message in reversed(posts.messages):
                         "msg_edit_date": message.edit_date,
                         "msg_post_author": message.post_author,
                         "msg_grouped_id": message.grouped_id }
-            x = mycol.insert_one(mydict)
+            x = mycol.insert_one(mymessage)
 
 # Report records added
-print("Records added = ", records_added)
+print("Messages added = ", message_added)
+print("Users added = ", user_added)
 
 # Close connection
 client.disconnect()
