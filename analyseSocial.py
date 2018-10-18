@@ -76,16 +76,16 @@ mycol = mydb[mongo_collection]
 mycolu = mydb[mongo_users]
 mycola = mydb[mongo_analytics]
 
-# Check for iohk
-print ('\n----------------- iohk ------------')
-for xxx in mycol.find({'msg_message': { '$regex': 'iohk', '$options': 'i' }}):
+# Check for coco
+print ('\n----------------- coco ------------')
+for xxx in mycol.find({'msg_message': { '$regex': 'coco', '$options': 'i' }}):
     line=xxx['msg_message']
     vs = analyzer.polarity_scores(line)
     if vs['compound'] < 0:
         print (xxx['msg_date'],line,vs['compound'])
-# Check for emurgo
-print ('\n----------------- emurgo ------------')
-for xxx in mycol.find({'msg_message': { '$regex': 'emurgo', '$options': 'i' }}):
+# Check for acme
+print ('\n----------------- acme ------------')
+for xxx in mycol.find({'msg_message': { '$regex': 'acme', '$options': 'i' }}):
     line=xxx['msg_message']
     vs = analyzer.polarity_scores(line)
     if vs['compound'] < 0:
