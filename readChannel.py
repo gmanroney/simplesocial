@@ -24,7 +24,7 @@ def ConfigSectionMap(section):
                                                                                                                 
 # Read From Config File
 config = configparser.ConfigParser()
-config.read('./readChannel.ini')
+config.read('/home/gerard/readChannel.ini')
 api_id = ConfigSectionMap("telegram")['api_id']
 api_hash = ConfigSectionMap("telegram")['api_hash']
 channel_name = ConfigSectionMap("telegram")['channel_name']
