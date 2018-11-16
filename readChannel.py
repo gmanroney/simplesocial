@@ -3,51 +3,49 @@
 from telethon import TelegramClient, events, sync
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import PeerUser, PeerChat, PeerChannel
+from commonFunctions import NiceMsg
+from commonFunctions import ConfigSectionMap
 
 import pymongo
 import re
+import sys
+import os
 import configparser
 
-# Helper function to read from configuration file
-def ConfigSectionMap(section):
-    dict1 = {}
-    options = config.options(section)
-    for option in options:
-        try:
-            dict1[option] = config.get(section, option)
-            if dict1[option] == -1:
-                DebugPrint("skip: %s" % option)
-        except:
-            print("exception on %s!" % option)
-            dict1[option] = None
-    return dict1
-                                                                                                                
 # Read From Config File
 config = configparser.ConfigParser()
-config.read('/home/gerard/readChannel.ini')
-api_id = ConfigSectionMap("telegram")['api_id']
-api_hash = ConfigSectionMap("telegram")['api_hash']
-channel_name = ConfigSectionMap("telegram")['channel_name']
-mongo_db = ConfigSectionMap("mongo")['mongo_db']
-mongo_collection = ConfigSectionMap("mongo")['mongo_collection']
-mongo_users = ConfigSectionMap("mongo")['mongo_users']
+config.read('/home/germoroney/simplesocial/simpleSocial.ini')
+api_id = ConfigSectionMap("telegram",config)['api_id']
+api_hash = ConfigSectionMap("telegram",config)['api_hash']
+channel_name = ConfigSectionMap("telegram",config)['channel_name']
+mongo_db = ConfigSectionMap("mongo",config)['mongo_db']
+mongo_collection = ConfigSectionMap("mongo",config)['mongo_collection']
+mongo_users = ConfigSectionMap("mongo",config)['mongo_users']
 
 # Define Telegram client connection
 client = TelegramClient('readChannel', api_id, api_hash)
 
 # Define Mongo connection
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+try:
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+except:
+    NiceMsg("Could not connect to mongodb")
+
 mydb = myclient[mongo_db]
 mycol = mydb[mongo_collection]
 mycolu = mydb[mongo_users]
 
 # Connect to telegram
-client.start()
-client.connect()
+try:
+    client.start()
+    client.connect()
+except:
+    NiceMsg("Could not connect to telegram")
 
 # Connect to channel and get posts
-channel_entity=client.get_entity(channel_name)
-posts = client(GetHistoryRequest(
+try:
+    channel_entity=client.get_entity(channel_name)
+    posts = client(GetHistoryRequest(
         peer=channel_entity,
         limit=1000000,
         offset_date=0,
@@ -56,11 +54,16 @@ posts = client(GetHistoryRequest(
         min_id=0,
         add_offset=0,
         hash=0))
+except:
+    NiceMsg("Could not connect to channel ", channel_name)
+
+NiceMsg("Read messages from chanel " + channel_name)
 
 # Initalise counter for records added
 message_added = 0
 user_added = 0
 
+NiceMsg("Processing messages")
 # Loop through messages and add if not already present
 for message in reversed(posts.messages): 
 
@@ -105,8 +108,12 @@ for message in reversed(posts.messages):
             x = mycol.insert_one(mymessage)
 
 # Report records added
-print("Messages added = ", message_added)
-print("Users added = ", user_added)
+f=os.popen('date').read().rstrip("\n\r")
+NiceMsg("Messages added = " + str(message_added))
+NiceMsg("Users added = " + str(user_added))
 
 # Close connection
 client.disconnect()
+
+# End program
+sys.exit()
