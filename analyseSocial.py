@@ -60,7 +60,7 @@ def searchMsgMain ():
 
 # Read From Config File
 config = configparser.ConfigParser()
-config.read('./analyseSocial.ini')
+config.read('./simpleSocial.ini')
 mongo_db = ConfigSectionMap("mongo",config)['mongo_db']
 mongo_collection = ConfigSectionMap("mongo",config)['mongo_collection']
 mongo_users = ConfigSectionMap("mongo",config)['mongo_users']
