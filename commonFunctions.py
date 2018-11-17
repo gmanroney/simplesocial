@@ -2,6 +2,22 @@
 import os
 import configparser
 
+# Helper function to find a message by ID
+def searchMsgById(msg_id,mycol):
+    record = {}
+    record = mycol.find_one({'msg_id': msg_id })
+    return record
+
+# Helper function to find username
+def searchUsrById(usr_id,mycolu):
+    record = {}
+    record = mycolu.find_one({'id': usr_id })
+    if record['first_name'] is None: record['first_name'] = "unknown"
+    if record['last_name'] is None: record['last_name'] = "unknown"
+    if record['username'] is None: record['username'] = "unknown"
+    summary = record['first_name'] + " " + record['last_name'] + " (" + record['username'] + ")"
+    return summary
+
 # Helper for adding timestamp to message
 def NiceMsg(message): 
     f=os.popen('date').read().rstrip("\n\r")

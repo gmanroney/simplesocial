@@ -23,22 +23,6 @@ import csv
 import os
 import sys
 
-# Helper function to find username
-def searchUsrById(usr_id):
-    record = {}
-    record = mycolu.find_one({'id': usr_id })
-    if record['first_name'] is None: record['first_name'] = "unknown"
-    if record['last_name'] is None: record['last_name'] = "unknown"
-    if record['username'] is None: record['username'] = "unknown"
-    summary = record['first_name'] + " " + record['last_name'] + " (" + record['username'] + ")"
-    return summary
-
-# Helper function to find a message by ID
-def searchMsgById(msg_id):
-    record = {}
-    record = mycol.find_one({'msg_id': msg_id })
-    return record
-
 def searchMsgMain ():
     record_added = 0
     record_updated = 0

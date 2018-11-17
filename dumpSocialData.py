@@ -8,7 +8,7 @@ from prettytable import PrettyTable
 from pathlib import Path
 from datetime import datetime, timedelta, date
 from isoweek import Week
-from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii
+from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById
 
 analyzer = SentimentIntensityAnalyzer()
 
@@ -23,17 +23,6 @@ import csv
 import os
 import sys
 
-
-# Helper function to find username
-def searchUsrById(usr_id):
-    record = {}
-    record = mycolu.find_one({'id': usr_id })
-    if record['first_name'] is None: record['first_name'] = "unknown"
-    if record['last_name'] is None: record['last_name'] = "unknown"
-    if record['username'] is None: record['username'] = "unknown"
-    summary = record['first_name'] + " " + record['last_name'] + " (" + record['username'] + ")"
-    return summary
-
 def dumpToCsv (my_out_file):
     record_count = 0
     outfile=my_out_file
@@ -42,7 +31,7 @@ def dumpToCsv (my_out_file):
     NiceMsg ('++++++++++ CSV DUMP ++++++++++++++++')
     for entry in mycol.find():
         line=entry['msg_message']
-        userIdentity = searchUsrById(entry['msg_from_id'])
+        userIdentity = searchUsrById(entry['msg_from_id'],mycolu)
         vs = analyzer.polarity_scores(line)
         record_count = record_count + 1
         with open(outfile, 'a') as writeFile: 
