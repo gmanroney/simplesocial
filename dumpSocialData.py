@@ -3,42 +3,19 @@
 from telethon import TelegramClient, events, sync
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import PeerUser, PeerChat, PeerChannel
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from prettytable import PrettyTable
-from pathlib import Path
 from datetime import datetime, timedelta, date
 from isoweek import Week
-from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById
-
-analyzer = SentimentIntensityAnalyzer()
-
-pos_count = 0
-pos_correct = 0
-
+from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById,searchMsgByDate,dumpToCsv
 import pymongo
 import re
 import configparser
 import smtplib
-import csv
 import os
 import sys
 
-def dumpToCsv (my_out_file):
-    record_count = 0
-    outfile=my_out_file
-    Path(outfile).touch()
-    os.remove(outfile)
-    NiceMsg ('++++++++++ CSV DUMP ++++++++++++++++')
-    for entry in mycol.find():
-        line=entry['msg_message']
-        userIdentity = searchUsrById(entry['msg_from_id'],mycolu)
-        vs = analyzer.polarity_scores(line)
-        record_count = record_count + 1
-        with open(outfile, 'a') as writeFile: 
-            writer = csv.writer(writeFile,quoting=csv.QUOTE_ALL,lineterminator=os.linesep)
-            if ( record_count == 1 ): writer.writerow(["user","date","message","score"])
-            if ( record_count % 50 == 0 ): print ('writing record :',record_count)
-            writer.writerow([RemoveInvalidAscii(userIdentity),entry['msg_date'],RemoveInvalidAscii(line),vs['compound']])
+pos_count = 0
+pos_correct = 0
 
 # Read From Config File
 config = configparser.ConfigParser()
@@ -59,8 +36,15 @@ mycol = mydb[mongo_collection]
 mycolu = mydb[mongo_users]
 mycola = mydb[mongo_analytics]
 
+# Read option; if blank then set default 'forever'
+#period=sys.argv[1]
+if len(sys.argv) < 2:
+    period='forever'
+else:
+    period=sys.argv[1]
+
 # Full dump to CSV file
-dumpToCsv(out_file)
+dumpToCsv(mycol,mycolu,period,out_file)
 
 # End program
 sys.exit()

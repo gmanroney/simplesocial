@@ -8,9 +8,7 @@ from prettytable import PrettyTable
 from pathlib import Path
 from datetime import datetime, timedelta, date
 from isoweek import Week
-from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchMsgById,searchUsrById
-
-analyzer = SentimentIntensityAnalyzer()
+from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById,searchMsgByDate
 
 pos_count = 0
 pos_correct = 0
@@ -23,84 +21,29 @@ import csv
 import os
 import sys
 
-def searchMsgMain ():
+def dumpToCsv (period,my_out_file):
+
     record_count = 0
-    dt = date.today()
+    outfile=my_out_file
+    Path(outfile).touch()
+    os.remove(outfile)
 
-    option = "forever"
-    if option == "today":
-        start = datetime.combine(dt, datetime.min.time())
-        end = datetime.combine(dt, datetime.max.time())
-    elif option == "yesterday":
-        start = datetime.combine(dt, datetime.min.time()) - timedelta(days=1)
-        end = datetime.combine(dt, datetime.max.time()) - timedelta(days=1)
-    elif option == "week":
-        week = dt.isocalendar()[1]
-        dow = dt.weekday()
-        start = datetime.combine(dt, datetime.min.time()) - timedelta(dow)
-        end = datetime.combine(dt, datetime.max.time()) + timedelta(days=6 - dow)
-    elif option == "month":
-        start = datetime.combine(dt, datetime.min.time())
-        end = datetime.combine(dt, datetime.max.time())
-    elif option == "month":
-        start = datetime.combine(dt, datetime.min.time())
-        end = datetime.combine(dt, datetime.max.time())
-    elif option == "forever":
-        start = ""
-        end = ""
-    else:
-        NiceMsg("Invalid option for searchMsgMain; exiting")
+    NiceMsg ('++++++++++ CSV DUMP ++++++++++++++++')
+    results = []
+    results = searchMsgByDate(mycol,period)
+    analyzer = SentimentIntensityAnalyzer()
 
-
-    print (start)
-    print (end)
-    result = mycol.find({"msg_date": { "$gte": start, "$lt": end}});
-
-    for entry in result:
-        print(entry)
-        record_count = record_count + 1
-    if record_count > 0: 
-        print ("Records found =", record_count)
-    else:
-        print ("No records found")
-
-def searchMsgMain2 (m_term,m_type):
-    record_count = 0
-    myPrettyTable = PrettyTable (["User","Date","Message","Score"])
-    myPrettyTable.align["User"]="l"
-    myPrettyTable.align["Message"]="l"
-    myPrettyTable.align["Score"]="l"
-
-    # Title of report
-    if ( m_type > 0 ): 
-        m_type_desc = "neutral to +ve"
-    elif ( m_type < 0 ): 
-        m_type_desc = "neutral to -ve"
-    else:
-        m_type_desc = "all regardless of sentiment"
-
-    print ("Sentiment: ",m_type_desc)
-
-    for entry in mycol.find({'msg_message': { '$regex': m_term, '$options': 'i' }}):
-        line=entry['msg_message'].replace('\n', ' ').replace('\r', '')
+    for entry in results:
+        line=entry['msg_message']
         userIdentity = searchUsrById(entry['msg_from_id'],mycolu)
         vs = analyzer.polarity_scores(line)
-        mymessage = {  "msg_id": entry['msg_id'],
-                       "msg_vader_sentiment": vs }
-        cursor = mycola.find({"msg_id": entry['msg_id']})
-        print (cursor)
-        if cursor.count() == 0:
-            x = mycola.insert_one(mymessage)
-        else:
-            x = mycola.update({"msg_id": entry['msg_id']},{ "$set": { "msg_vader_sentiment": vs }})
-
-        if ( float(vs['compound']) * m_type ) >= 0  :
-           myPrettyTable.add_row([RemoveInvalidAscii(userIdentity),entry['msg_date'],RemoveInvalidAscii(line[:120]),vs['compound']])
-           record_count = record_count + 1
-    if record_count > 0: 
-        print (myPrettyTable)
-    else:
-        print ("No records found")
+        record_count = record_count + 1
+        with open(outfile, 'a') as writeFile: 
+            writer = csv.writer(writeFile,quoting=csv.QUOTE_ALL,lineterminator=os.linesep)
+            if ( record_count == 1 ): writer.writerow(["user","date","message","score"])
+            writer.writerow([RemoveInvalidAscii(userIdentity),entry['msg_date'],RemoveInvalidAscii(line),vs['compound']])
+    
+    NiceMsg ('Total records exported = ' + str(record_count))
 
 # Read From Config File
 config = configparser.ConfigParser()
@@ -112,6 +55,7 @@ mongo_analytics = ConfigSectionMap("mongo",config)['mongo_analytics']
 gmail_user = ConfigSectionMap("email",config)['gmail_user']
 gmail_password = ConfigSectionMap("email",config)['gmail_password']
 end_user = ConfigSectionMap("email",config)['end_user']
+out_file = ConfigSectionMap("export",config)['out_file']
 
 # Define Mongo connection
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -120,14 +64,16 @@ mycol = mydb[mongo_collection]
 mycolu = mydb[mongo_users]
 mycola = mydb[mongo_analytics]
 
-#searchMsgMain()
+# Read option; if blank then set default 'forever'
+#period=sys.argv[1]
+if len(sys.argv) < 2:
+    period='forever'
+else:
+    period=sys.argv[1]
 
-# Run searches based on configuration
-for key, value in config.items('report'):
-    searchTerm,searchType,searchRange=value.split(":")
-    f=os.popen('date').read().rstrip("\n\r")
-    print("[",f, "] Executing search :",searchTerm,searchType)
-    searchMsgMain2 (searchTerm,int(searchType))
+print (period)
+# Full dump to CSV file
+dumpToCsv(period,out_file)
 
 # End program
 sys.exit()
