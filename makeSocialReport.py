@@ -8,7 +8,7 @@ from prettytable import PrettyTable
 from pathlib import Path
 from datetime import datetime, timedelta, date
 from isoweek import Week
-from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById,searchMsgByDate
+from commonFunctions import NiceMsg,ConfigSectionMap,RemoveInvalidAscii,searchUsrById,searchMsgByDate,SendEmailByGmail
 
 pos_count = 0
 pos_correct = 0
@@ -40,7 +40,7 @@ def dumpToCsv (period,my_out_file):
         record_count = record_count + 1
         with open(outfile, 'a') as writeFile: 
             writer = csv.writer(writeFile,quoting=csv.QUOTE_ALL,lineterminator=os.linesep)
-            if ( record_count == 1 ): writer.writerow(["user","date","message","score"])
+            if ( record_count == 1 ): writer.writerow(["User","Date","Message","Score"])
             writer.writerow([RemoveInvalidAscii(userIdentity),entry['msg_date'],RemoveInvalidAscii(line),vs['compound']])
     
     NiceMsg ('Total records exported = ' + str(record_count))
@@ -74,6 +74,7 @@ else:
 print (period)
 # Full dump to CSV file
 dumpToCsv(period,out_file)
+SendEmailByGmail (gmail_user, gmail_password, end_user, "Social Report For Period: " + period, out_file)
 
 # End program
 sys.exit()
