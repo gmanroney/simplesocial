@@ -108,7 +108,7 @@ def RemoveInvalidAscii(input):
     return input
 
 # Helper function to send email
-def SendEmailByGmailo (g_user, g_pass, e_user, e_subject, e_body ):
+def SendEmailByGmailText (g_user, g_pass, e_user, e_subject, e_body ):
 
     gmail_user = g_user
     gmail_password = g_pass
@@ -117,32 +117,17 @@ def SendEmailByGmailo (g_user, g_pass, e_user, e_subject, e_body ):
     print(sent_from,to,gmail_user,gmail_password)
 
     subject = e_subject
-    #f = open(e_body)
-    #body = f.readlines().append('\n')`
-    #f.close()
     with open(e_body) as f:
         body = f.read()
         print (body)
-
-    #body = 'sssssssssss'
-    #f = open(e_body)
-    #body = MIMEText(''.join(f.readlines()))
-    #f.close()
 
     print(body)
 
     email_text = """From: %s  
 To: %s  
 Subject: %s
-<html>
-  <head></head>
-  <body>
 %s
-  </body>
-</html>
 """ % (sent_from, to, subject, body)
-
-    print (email_text)
 
     try:  
        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
@@ -154,7 +139,7 @@ Subject: %s
     except:  
        print ('Something went wrong...')
 
-#Helper function to send email
+#Helper function to send HTML Email (currenty assumes 4 column format with 4th column the sentiment value)
 def SendEmailByGmail (g_user, g_pass, e_user, e_subject, e_body ):
 
     gmail_user = g_user
@@ -169,17 +154,8 @@ def SendEmailByGmail (g_user, g_pass, e_user, e_subject, e_body ):
     msg['From'] = gmail_user
     msg['To'] = e_user
 
-    with open(e_body) as f:
-        body = f.read()
 
-    email_text = """From: %s  
-To: %s  
-Subject: %s
-%s
-""" % (sent_from, to, subject, body)
-    email_text = "Hi!\nHow are you?\nHere is the link you wanted:\nhttps://www.python.org"
-
-
+    # Create table that will display results in e-mail body
     table = ''
     with open(e_body, encoding="utf8") as csvFile:
         reader = csv.DictReader(csvFile, delimiter=',')
@@ -197,12 +173,12 @@ Subject: %s
                         table_row += '<td>{}</td>'.format(row[fn])
                 else:
                     table_row += '<td>{}</td>'.format(row[fn])
-
                 index +=1
             table_row += '</tr>'
             table += table_row
         table +='</table>'
 
+    # Create html in e-mail body
     email_html = """\
 <html>
   <head>
